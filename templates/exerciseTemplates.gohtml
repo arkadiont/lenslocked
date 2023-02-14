@@ -1,0 +1,19 @@
+<h1>Template exercise Page</h1>
+
+<p>Hello {{ .Name }}, you have {{ .Age}} years old</p>
+
+<p>Money {{ .Money}} €</p>
+
+<p>Hobbies {{ .Hobbies}} </p>
+
+<p>MyMap {{ .MyMap}} </p>
+
+<p>Meta.Visit {{ .Meta.Visit}} </p>
+
+<p>
+    Hello, {{ if .Optional}}
+        {{ .Optional }}
+    {{- else }}
+    is optional
+    {{- end }}
+</p>
