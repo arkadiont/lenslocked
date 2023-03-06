@@ -8,6 +8,7 @@ import (
 	"github.com/arkadiont/lenslocked/views"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gorilla/csrf"
 	"log"
 	"net/http"
 )
@@ -25,7 +26,14 @@ func main() {
 	}()
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	CSRF := csrf.Protect(
+		[]byte("ASDFGHJKLZXCVBNMQWERTUIOP1234567"),
+		csrf.Secure(false),
+	)
+	r.Use(
+		CSRF,
+		middleware.Logger,
+	)
 
 	r.Get("/", controllers.StaticHandler(
 		views.Must(views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
@@ -57,5 +65,4 @@ func main() {
 	})
 	fmt.Println("Starting server on :3000...")
 	fmt.Printf("err: %v", http.ListenAndServe(":3000", r))
-
 }
