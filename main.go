@@ -45,7 +45,8 @@ func main() {
 		views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))))
 
 	usersC := controllers.Users{
-		UserService: models.NewUserServicePostgres(db),
+		UserService:    models.NewUserServicePostgres(db),
+		SessionService: models.NewSessionServicePostgres(db),
 	}
 	usersC.Templates.New = views.Must(views.ParseFS(
 		templates.FS,
@@ -59,6 +60,8 @@ func main() {
 	r.Post("/users", usersC.Create)
 	r.Get("/signin", usersC.SignIn)
 	r.Post("/signin", usersC.ProcessSignIn)
+	r.Post("/signout", usersC.ProcessSignOut)
+	r.Get("/users/me", usersC.CurrentUser)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
