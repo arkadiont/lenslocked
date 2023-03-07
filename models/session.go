@@ -68,16 +68,10 @@ func (ss sessionService) Create(userID uint) (*Session, error) {
 		TokenHash: ss.hash(token),
 	}
 	row := ss.DB.QueryRow(`
-		UPDATE session SET token_hash = $2 
-		WHERE user_id = $1
-		RETURNING id;`, session.UserId, session.TokenHash)
-	err = row.Scan(&session.ID)
-	if err == sql.ErrNoRows {
-		row = ss.DB.QueryRow(`
 		INSERT INTO session (user_id, token_hash)
-		VALUES ($1, $2) RETURNING id;`, session.UserId, session.TokenHash)
-		err = row.Scan(&session.ID)
-	}
+		VALUES ($1, $2) ON CONFLICT DO 
+		UPDATE SET token_hash = $2 RETURNING id;`, session.UserId, session.TokenHash)
+	err = row.Scan(&session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("create session: %w", err)
 	}
@@ -96,9 +90,9 @@ func (ss sessionService) Delete(token string) error {
 func (ss sessionService) User(token string) (*User, error) {
 	var user User
 	tokenHash := ss.hash(token)
-	row := ss.DB.QueryRow(`SELECT u.email, u.password_hash FROM users u, session s
+	row := ss.DB.QueryRow(`SELECT u.id, u.email, u.password_hash FROM users u, session s
 	WHERE u.id = s.user_id AND s.token_hash = $1`, tokenHash)
-	if err := row.Scan(&user.Email, &user.PasswordHash); err != nil {
+	if err := row.Scan(&user.ID, &user.Email, &user.PasswordHash); err != nil {
 		return nil, fmt.Errorf("user: %w", err)
 	}
 	return &user, nil
