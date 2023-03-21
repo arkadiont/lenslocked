@@ -16,10 +16,11 @@ type User struct {
 type UserService interface {
 	Create(email, password string) (*User, error)
 	Authenticate(email, password string) (*User, error)
+	UpdatePassword(userId uint, password string) error
 }
 
 func NewUserServicePostgres(db *sql.DB) UserService {
-	return userServicePostgres{
+	return &userServicePostgres{
 		DB: db,
 	}
 }
@@ -47,14 +48,13 @@ func (us userServicePostgres) Authenticate(email, password string) (*User, error
 }
 
 func (us userServicePostgres) Create(email, password string) (*User, error) {
-	email = strings.ToLower(email) // postgres is not case sensitive
-	binHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	var err error
+	user := User{
+		Email: strings.ToLower(email), // postgres is not case sensitive
+	}
+	user.PasswordHash, err = us.generateFromPassword(password)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
-	}
-	user := User{
-		Email:        email,
-		PasswordHash: string(binHash),
 	}
 	row := us.DB.QueryRow(`
 		INSERT INTO users (email, password_hash)
@@ -64,4 +64,25 @@ func (us userServicePostgres) Create(email, password string) (*User, error) {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 	return &user, nil
+}
+
+func (us userServicePostgres) UpdatePassword(userId uint, password string) error {
+	hash, err := us.generateFromPassword(password)
+	if err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	if _, err = us.DB.Exec(`
+		UPDATE users SET password_hash = $2 
+		WHERE id = $1;`, userId, hash); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	return nil
+}
+
+func (us userServicePostgres) generateFromPassword(password string) (string, error) {
+	binHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(binHash), nil
 }
