@@ -46,7 +46,7 @@ func NewSessionServicePostgres(db *sql.DB, opts ...sessionOption) SessionService
 	for _, opt := range opts {
 		opt(&s)
 	}
-	return s
+	return &s
 }
 
 type sessionService struct {
